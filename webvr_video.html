@@ -36,11 +36,9 @@
 
             // Sampler locations
             this.baseMapLoc = 0;
-            this.lightMapLoc = 0;
 
             // Texture handle
             this.baseMapTexId = 0;
-            this.lightMapTexId = 0;
 
             // VBOs
             this.vertexObject = 0;
@@ -54,8 +52,8 @@
         function LoadTexture(texture) {
             gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         }
@@ -79,15 +77,11 @@
                'precision mediump float;                            \n\
                 varying vec2 v_texCoord;                            \n\
                 uniform sampler2D s_baseMap;                        \n\
-                uniform sampler2D s_lightMap;                       \n\
                 void main()                                         \n\
                 {                                                   \n\
                     vec4 baseColor;                                   \n\
-                    vec4 lightColor;                                  \n\
-                                                                    \n\
                     baseColor = texture2D( s_baseMap, v_texCoord );   \n\
-                    lightColor = texture2D( s_lightMap, v_texCoord ); \n\
-                    gl_FragColor = baseColor * (lightColor + 0.25);   \n\
+                    gl_FragColor = baseColor;   \n\
                 }                                                   \n';
 
             // Load the shaders and get a linked program object
@@ -99,7 +93,6 @@
 
             // Get the sampler location
             userData.baseMapLoc = gl.getUniformLocation(userData.programObject, "s_baseMap");
-            userData.lightMapLoc = gl.getUniformLocation(userData.programObject, "s_lightMap");
 
             // Load the textures
             userData.baseMapTexId = gl.createTexture();
@@ -108,12 +101,6 @@
                 LoadTexture(userData.baseMapTexId);
             }
             userData.baseMapTexId.image.src = "images/cubemap.jpeg";
-            userData.lightMapTexId = gl.createTexture();
-            userData.lightMapTexId.image = new Image();
-            userData.lightMapTexId.image.onload = function () {
-                LoadTexture(userData.lightMapTexId);
-            }
-            userData.lightMapTexId.image.src = "images/cubemap.jpeg";
 
             // Setup the vertex data
             var vVertices = new Float32Array(
@@ -174,13 +161,6 @@
 
             // Set the base map sampler to texture unit to 0
             gl.uniform1i(userData.baseMapLoc, 0);
-
-            // Bind the light map
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, userData.lightMapTexId);
-
-            // Set the light map sampler to texture unit 1
-            gl.uniform1i(userData.lightMapLoc, 1);
 
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, userData.indexObject);
             gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
