@@ -13,7 +13,7 @@
 <body>
     <div id="info">WebGL 2 Samples - webvr from single source img</div>
     <p id="description">
-        This sample uses textureGrad for a texture lookup with explicit gradients for textures on each face of the cube.
+        This sample uses single image including 6 faces and display environment for the image.
     </p>
 
     <!-- WebGL 2 shaders -->
@@ -218,8 +218,8 @@
                 gl.activeTexture(gl.TEXTURE0);
                 gl.bindTexture(gl.TEXTURE_2D, texture);
                 gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
@@ -232,8 +232,6 @@
             });
 
             // -- Initialize render variables
-            var orientation = [0.0, 0.0, 0.0];
-
             var modelMatrix = mat4.create();
 
             var mvMatrix = mat4.create();
@@ -260,25 +258,22 @@
             };
 
             canvas.onmousemove = function (event) {
-                var newX = event.clientX;
-                var newY = event.clientY;
+                if (mouseDown) {
+                    var newX = event.clientX;
+                    var newY = event.clientY;
 
-                var deltaX = newX - lastMouseX;
-                var deltaY = newY - lastMouseY;
+                    var deltaX = newX - lastMouseX;
+                    var deltaY = newY - lastMouseY;
 
-                var m = mat4.create();
+                    var m = mat4.create();
 
-                mat4.rotateX(m, m, deltaX / 100.0);
-                mat4.rotateY(m, m, deltaY / 100.0);
+                    mat4.rotateX(m, m, deltaX / 500.0 * Math.PI);
+                    mat4.rotateY(m, m, deltaY / 500.0 * Math.PI);
+                    mat4.multiply(mvMatrix, mvMatrix, m);
 
-                var scale = vec3.create();
-                vec3.set(scale, (1 + deltaX / 1000.0), (1 + deltaX / 1000.0), (1 + deltaX / 1000.0));
-                mat4.scale(m, m, scale);
-
-                mat4.multiply(mvMatrix, mvMatrix, m);
-
-                lastMouseX = newX;
-                lastMouseY = newY;
+                    lastMouseX = newX;
+                    lastMouseY = newY;
+                }
             };
 
             function render() {
@@ -289,14 +284,6 @@
                 gl.enable(gl.DEPTH_TEST);
                 gl.enable(gl.CULL_FACE);
                 gl.cullFace(gl.BACK);
-
-                orientation[0] = 0.00020; // yaw
-                orientation[1] = 0.00010; // pitch
-                orientation[2] = 0.00005; // roll
-
-                mat4.rotateX(mvMatrix, mvMatrix, orientation[0] * Math.PI);
-                mat4.rotateY(mvMatrix, mvMatrix, orientation[1] * Math.PI);
-                mat4.rotateZ(mvMatrix, mvMatrix, orientation[2] * Math.PI);
 
                 gl.bindVertexArray(vertexArray);
                 gl.useProgram(program);
