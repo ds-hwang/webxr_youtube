@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Ported from the OpenGL Samples Pack https://github.com/g-truc/ogl-samples/blob/master/tests/gl-320-texture-derivative.cpp and adapted from Mozilla's sample 5 https://github.com/mdn/webgl-examples/tree/gh-pages/tutorial/sample5 -->
 <html lang="en">
 
 <head>
@@ -13,7 +12,7 @@
 <body>
     <div id="info">WebGL 2 Samples - webvr from single source img</div>
     <p id="description">
-        This sample uses single image including 6 faces and display environment for the image.
+        This sample uses single image including 6 faces and display environment by the image.
     </p>
 
     <!-- WebGL 2 shaders -->
@@ -65,6 +64,8 @@
         {
             vec2 size = vec2(textureSize(sTexture, 0));
             vec2 uv = (vUV * uTexScale) + vTexOffset;
+            vec2 epsilon = vec2(0.0005);
+            uv = clamp(uv, vTexOffset + epsilon, vTexOffset + uTexScale - epsilon);
             color = texture(sTexture, uv);
         }
     </script>
@@ -82,7 +83,9 @@
             var gl = canvas.getContext('webgl2', { antialias: true });
             var isWebGL2 = !!gl;
             if (!isWebGL2) {
-                document.getElementById('info').innerHTML = 'WebGL 2 is not available.  See <a href="https://www.khronos.org/webgl/wiki/Getting_a_WebGL_Implementation">How to get a WebGL 2 implementation</a>';
+                document.getElementById('info').innerHTML = 'WebGL 2 is not available.' +
+                    ' See <a href="https://www.khronos.org/webgl/wiki/Getting_a_WebGL_Implementation">' +
+                    ' How to get a WebGL 2 implementation</a>';
                 return;
             }
 
@@ -294,7 +297,7 @@
 
             var viewMatrix = mat4.create();
             var perspectiveMatrix = mat4.create();
-            var fov = 46 * Math.PI / 180;
+            var fov = 60 * Math.PI / 180;
             var aspect = canvas.width / canvas.height;
             var near = 0.01;
             var far = 10000;
