@@ -327,6 +327,14 @@
                     var deltaY = -(newX - lastMouseX) * amplifier;
                     var deltaX = -(newY - lastMouseY) * amplifier;
 
+                    // horizontal rotation doesn't bother with vertical.
+                    var snap = 4;
+                    if (Math.abs(deltaY) > (snap * Math.abs(deltaX))) {
+                        deltaX = 0;
+                    } else if (Math.abs(deltaX) > (snap * Math.abs(deltaY))) {
+                        deltaY = 0;
+                    }
+
                     var dq = quat.create();
                     quat.fromEuler(dq, deltaX, deltaY, 0);
                     // https://github.com/ds-hwang/wiki/wiki/VR-mathematics:-opengl-matrix,-transform,-quaternion,-euler-angles,-homography-transformation,-reprojection#dq--q2q1
