@@ -4,6 +4,9 @@
 
 'use strict';
 
+// TODO(dshwang): enable it when supported.
+// import defaultExport from 'utility';
+
 (function() {
 const CAMERA_SETTINGS = function() {
   return {fov : 60 * Math.PI / 180, near : 0.01, far : 10000};
