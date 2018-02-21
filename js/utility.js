@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-export(function() {
+function getUtil() {
   'use strict';
 
   function getShaderSource(id) {
@@ -78,4 +78,6 @@ export(function() {
   };
 
   return {getShaderSource, createProgram, loadImage, loadImages, loadObj};
-})();
+}
+
+var util = getUtil();

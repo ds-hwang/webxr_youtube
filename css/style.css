@@ -30,3 +30,15 @@ body {
 a {
     color: #0080ff;
 }
+
+.vr-toggle {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    background: #44C1B7;
+    color: #FFF;
+    padding: 12px 16px;
+    border-radius: 3px;
+    border: none;
+    font-size: 14px;
+}

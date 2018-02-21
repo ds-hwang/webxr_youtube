@@ -36,6 +36,77 @@ class WebVR {
     this.setMouseBehavior();
     this.render_ = this.render.bind(this);
 
+    if (typeof VRFrameData === 'undefined') {
+      this.showWebVRNotSupportedError();
+      return;
+    }
+
+    this.vr_ = {display : null, frameData : new VRFrameData()};
+
+    this.addVREventListeners();
+    this.getDisplays();
+  }
+
+  showWebVRNotSupportedError() { console.error('WebVR not supported'); }
+
+  addVREventListeners() {
+    window.addEventListener('vrdisplayactivate', _ => { this.activateVR(); });
+    window.addEventListener('vrdisplaydeactivate',
+                            _ => { this.deactivateVR(); });
+  }
+
+  activateVR() {
+    if (!this.vr_.display)
+      return;
+
+    this.button_.textContent = 'Disable VR';
+    this.vr_.display.requestPresent([ {source : this.canvas_} ]).catch(e => {
+      console.error(`Unable to init VR: ${e}`);
+    });
+  }
+
+  deactivateVR() {
+    if (!this.vr_.display)
+      return;
+
+    if (!this.vr_.display.isPresenting)
+      return;
+
+    this.button_.textContent = 'Enable VR';
+    this.vr_.display.exitPresent();
+  }
+
+  getDisplays() {
+    return navigator.getVRDisplays().then(displays => {
+      // Filter down to devices that can present.
+      displays = displays.filter(display => display.capabilities.canPresent);
+
+      // If there are no devices available, quit out.
+      if (displays.length === 0) {
+        console.warn('No devices available able to present.');
+        return;
+      }
+
+      // Store the first display we find. A more production-ready version should
+      // allow the user to choose from their available displays.
+      this.vr_.display = displays[0];
+      this.createPresentationButton();
+    });
+  }
+
+  createPresentationButton() {
+    this.button_ = document.createElement('button');
+    this.button_.classList.add('vr-toggle');
+    this.button_.textContent = 'Enable VR';
+    this.button_.addEventListener('click', _ => { this.toggleVR(); });
+    document.body.appendChild(this.button_);
+  }
+
+  toggleVR() {
+    if (this.vr_.display.isPresenting)
+      return this.deactivateVR();
+
+    return this.activateVR();
   }
 
   addEventListeners() {
@@ -45,15 +116,14 @@ class WebVR {
   onResize() {
     this.width_ = window.innerWidth;
     this.height_ = window.innerHeight;
-    this.canvas_.width = window.innerWidth;
-    this.canvas_.height = window.innerHeight;
-    this.aspect_ = this.width_ / this.height_;
+    this.canvas_.width = this.width_;
+    this.canvas_.height = this.height_;
     this.initRenderVariables();
   }
 
   initProgram() {
-    this.program_ =
-        createProgram(this.gl_, getShaderSource('vs'), getShaderSource('fs'));
+    this.program_ = util.createProgram(this.gl_, util.getShaderSource('vs'),
+                                       util.getShaderSource('fs'));
     this.mvMatrixLocation_ =
         this.gl_.getUniformLocation(this.program_, 'mvMatrix');
     this.pMatrixLocation_ =
@@ -62,47 +132,52 @@ class WebVR {
         this.gl_.getUniformLocation(this.program_, 'sTexture');
     this.texScaleLocation_ =
         this.gl_.getUniformLocation(this.program_, 'uTexScale');
+
+    this.gl_.clearColor(0.0, 0.0, 0.0, 0.0);
+    this.gl_.enable(this.gl_.DEPTH_TEST);
+    this.gl_.enable(this.gl_.CULL_FACE);
+    this.gl_.cullFace(this.gl_.BACK);
   }
 
   setVertexArray() {
     /* clang-format off */
     // -- Init buffers
     const positions = new Float32Array([
-        // Front face
-        -1.0, -1.0, -1.0,
-        1.0, -1.0, -1.0,
-        1.0, 1.0, -1.0,
-        -1.0, 1.0, -1.0,
+      // Front face
+      -1.0, -1.0, -1.0,
+      1.0, -1.0, -1.0,
+      1.0, 1.0, -1.0,
+      -1.0, 1.0, -1.0,
 
-        // Back face
-        1.0, -1.0, 1.0,
-        -1.0, -1.0, 1.0,
-        -1.0, 1.0, 1.0,
-        1.0, 1.0, 1.0,
+      // Back face
+      1.0, -1.0, 1.0,
+      -1.0, -1.0, 1.0,
+      -1.0, 1.0, 1.0,
+      1.0, 1.0, 1.0,
 
-        // Top face
-        -1.0, 1.0, -1.0,
-        1.0, 1.0, -1.0,
-        1.0, 1.0, 1.0,
-        -1.0, 1.0, 1.0,
+      // Top face
+      -1.0, 1.0, -1.0,
+      1.0, 1.0, -1.0,
+      1.0, 1.0, 1.0,
+      -1.0, 1.0, 1.0,
 
-        // Bottom face
-        -1.0, -1.0, 1.0,
-        1.0, -1.0, 1.0,
-        1.0, -1.0, -1.0,
-        -1.0, -1.0, -1.0,
+      // Bottom face
+      -1.0, -1.0, 1.0,
+      1.0, -1.0, 1.0,
+      1.0, -1.0, -1.0,
+      -1.0, -1.0, -1.0,
 
-        // Right face
-        1.0, -1.0, -1.0,
-        1.0, -1.0, 1.0,
-        1.0, 1.0, 1.0,
-        1.0, 1.0, -1.0,
+      // Right face
+      1.0, -1.0, -1.0,
+      1.0, -1.0, 1.0,
+      1.0, 1.0, 1.0,
+      1.0, 1.0, -1.0,
 
-        // Left face
-        -1.0, -1.0, 1.0,
-        -1.0, -1.0, -1.0,
-        -1.0, 1.0, -1.0,
-        -1.0, 1.0, 1.0
+      // Left face
+      -1.0, -1.0, 1.0,
+      -1.0, -1.0, -1.0,
+      -1.0, 1.0, -1.0,
+      -1.0, 1.0, 1.0
     ]);
     /* clang-format on */
     this.vertexPosBuffer_ = this.gl_.createBuffer();
@@ -112,41 +187,41 @@ class WebVR {
 
     /* clang-format off */
     const texCoords = new Float32Array([
-        // Front face
-        0.0, 1.0,
-        1.0, 1.0,
-        1.0, 0.0,
-        0.0, 0.0,
+      // Front face
+      0.0, 1.0,
+      1.0, 1.0,
+      1.0, 0.0,
+      0.0, 0.0,
 
-        // Back face
-        0.0, 1.0,
-        1.0, 1.0,
-        1.0, 0.0,
-        0.0, 0.0,
+      // Back face
+      0.0, 1.0,
+      1.0, 1.0,
+      1.0, 0.0,
+      0.0, 0.0,
 
-        // Top face
-        0.0, 1.0,
-        1.0, 1.0,
-        1.0, 0.0,
-        0.0, 0.0,
+      // Top face
+      0.0, 1.0,
+      1.0, 1.0,
+      1.0, 0.0,
+      0.0, 0.0,
 
-        // Bottom face
-        0.0, 1.0,
-        1.0, 1.0,
-        1.0, 0.0,
-        0.0, 0.0,
+      // Bottom face
+      0.0, 1.0,
+      1.0, 1.0,
+      1.0, 0.0,
+      0.0, 0.0,
 
-        // Right face
-        0.0, 1.0,
-        1.0, 1.0,
-        1.0, 0.0,
-        0.0, 0.0,
+      // Right face
+      0.0, 1.0,
+      1.0, 1.0,
+      1.0, 0.0,
+      0.0, 0.0,
 
-        // Left face
-        0.0, 1.0,
-        1.0, 1.0,
-        1.0, 0.0,
-        0.0, 0.0,
+      // Left face
+      0.0, 1.0,
+      1.0, 1.0,
+      1.0, 0.0,
+      0.0, 0.0,
     ]);
     /* clang-format on */
     this.vertexTexBuffer_ = this.gl_.createBuffer();
@@ -156,41 +231,41 @@ class WebVR {
 
     /* clang-format off */
     const texOffsetCoords = new Float32Array([
-        // Front face
-        1. / 3, 1. / 2,
-        1. / 3, 1. / 2,
-        1. / 3, 1. / 2,
-        1. / 3, 1. / 2,
+      // Front face
+      1. / 3, 1. / 2,
+      1. / 3, 1. / 2,
+      1. / 3, 1. / 2,
+      1. / 3, 1. / 2,
 
-        // Back face
-        2. / 3, 1. / 2,
-        2. / 3, 1. / 2,
-        2. / 3, 1. / 2,
-        2. / 3, 1. / 2,
+      // Back face
+      2. / 3, 1. / 2,
+      2. / 3, 1. / 2,
+      2. / 3, 1. / 2,
+      2. / 3, 1. / 2,
 
-        // Top face
-        2. / 3, 0,
-        2. / 3, 0,
-        2. / 3, 0,
-        2. / 3, 0,
+      // Top face
+      2. / 3, 0,
+      2. / 3, 0,
+      2. / 3, 0,
+      2. / 3, 0,
 
-        // Bottom face
-        0, 1. / 2,
-        0, 1. / 2,
-        0, 1. / 2,
-        0, 1. / 2,
+      // Bottom face
+      0, 1. / 2,
+      0, 1. / 2,
+      0, 1. / 2,
+      0, 1. / 2,
 
-        // Right face
-        0, 0,
-        0, 0,
-        0, 0,
-        0, 0,
+      // Right face
+      0, 0,
+      0, 0,
+      0, 0,
+      0, 0,
 
-        // Left face
-        1. / 3, 0,
-        1. / 3, 0,
-        1. / 3, 0,
-        1. / 3, 0,
+      // Left face
+      1. / 3, 0,
+      1. / 3, 0,
+      1. / 3, 0,
+      1. / 3, 0,
     ]);
     /* clang-format on */
     this.vertexTexOffsetBuffer_ = this.gl_.createBuffer();
@@ -252,7 +327,7 @@ class WebVR {
   initTexture() {
     const imageUrl = 'images/cubemap.jpeg';
     this.texture_;
-    loadImage(imageUrl, this.onLoadImage.bind(this));
+    util.loadImage(imageUrl, this.onLoadImage.bind(this));
   }
 
   onLoadImage(image) {
@@ -279,13 +354,15 @@ class WebVR {
   }
 
   initRenderVariables() {
-    this.modelMatrix = mat4.create();
-    this.modelQuat = quat.create();
-    this.mvMatrix = mat4.create();
+    this.modelMatrix_ = mat4.create();
+    this.modelQuat_ = quat.create();
+    this.mvMatrix_ = mat4.create();
 
-    this.viewMatrix = mat4.create();
-    this.perspectiveMatrix = mat4.create();
-    mat4.perspective(this.perspectiveMatrix, CAMERA_SETTINGS.fov, this.aspect_,
+    this.viewMatrix_ = mat4.create();
+    this.projectionMatrix_ = mat4.create();
+
+    const aspect = this.width_ / this.height_;
+    mat4.perspective(this.projectionMatrix_, CAMERA_SETTINGS.fov, aspect,
                      CAMERA_SETTINGS.near, CAMERA_SETTINGS.far);
   }
 
@@ -300,6 +377,9 @@ class WebVR {
   }
 
   onMouseDown(event) {
+    if (this.isVrMode())
+      return;
+
     this.mouseDown = true;
     this.lastMouseX = event.clientX;
     this.lastMouseY = event.clientY;
@@ -328,31 +408,60 @@ class WebVR {
       quat.fromEuler(dq, deltaX, deltaY, 0);
       // https://github.com/ds-hwang/wiki/wiki/VR-mathematics:-opengl-matrix,-transform,-quaternion,-euler-angles,-homography-transformation,-reprojection#dq--q2q1
       // q2 = dq·q1
-      quat.multiply(this.modelQuat, dq, this.modelQuat);
-      mat4.fromQuat(this.modelMatrix, this.modelQuat);
+      quat.multiply(this.modelQuat_, dq, this.modelQuat_);
+      mat4.fromQuat(this.modelMatrix_, this.modelQuat_);
 
       this.lastMouseX = newX;
       this.lastMouseY = newY;
     }
   }
 
+  isVrMode() {
+    return this.vr_ && this.vr_.display && this.vr_.display.isPresenting;
+  }
+
   render() {
-    // -- Render
-    this.gl_.viewport(0, 0, this.width_, this.height_);
-    this.gl_.clearColor(0.0, 0.0, 0.0, 1.0);
     this.gl_.clear(this.gl_.COLOR_BUFFER_BIT);
+    if (!this.isVrMode()) {
+      const viewport = {x : 0, y : 0, w : this.width_, h : this.height_};
+      mat4.multiply(this.mvMatrix_, this.viewMatrix_, this.modelMatrix_);
+      this.renderEye(viewport, this.mvMatrix_, this.projectionMatrix_);
+      requestAnimationFrame(this.render_);
+      return;
+    }
 
-    this.gl_.enable(this.gl_.DEPTH_TEST);
-    this.gl_.enable(this.gl_.CULL_FACE);
-    this.gl_.cullFace(this.gl_.BACK);
+    const EYE_WIDTH = this.width_ * 0.5;
+    const EYE_HEIGHT = this.height_;
 
-    mat4.multiply(this.mvMatrix, this.viewMatrix, this.modelMatrix);
+    // Get all the latest data from the VR headset and dump it into frameData.
+    this.vr_.display.getFrameData(this.vr_.frameData);
+
+    // Left eye.
+    this.renderEye({x : 0, y : 0, w : EYE_WIDTH, h : EYE_HEIGHT},
+                   this.vr_.frameData.leftViewMatrix,
+                   this.vr_.frameData.leftProjectionMatrix);
+
+    // Right eye.
+    this.renderEye({x : EYE_WIDTH, y : 0, w : EYE_WIDTH, h : EYE_HEIGHT},
+                   this.vr_.frameData.rightViewMatrix,
+                   this.vr_.frameData.rightProjectionMatrix);
+
+    // Call submitFrame to ensure that the device renders the latest image from
+    // the WebGL context.
+    this.vr_.display.submitFrame();
+
+    // Use the VR display's in-built rAF (which can be a diff refresh rate to
+    // the default browser one).
+    this.vr_.display.requestAnimationFrame(this.render_);
+  }
+
+  renderEye(viewport, mvMatrix, projectionMatrix) {
+    this.gl_.viewport(viewport.x, viewport.y, viewport.w, viewport.h);
 
     this.gl_.bindVertexArray(this.vertexArray_);
     this.gl_.useProgram(this.program_);
-    this.gl_.uniformMatrix4fv(this.mvMatrixLocation_, false, this.mvMatrix);
-    this.gl_.uniformMatrix4fv(this.pMatrixLocation_, false,
-                              this.perspectiveMatrix);
+    this.gl_.uniformMatrix4fv(this.mvMatrixLocation_, false, mvMatrix);
+    this.gl_.uniformMatrix4fv(this.pMatrixLocation_, false, projectionMatrix);
     this.gl_.uniform1i(this.textureLocation_, 0);
     this.gl_.uniform2f(this.texScaleLocation_, 1 / 3, 1 / 2);
 
@@ -361,8 +470,6 @@ class WebVR {
 
     this.gl_.drawElementsInstanced(this.gl_.TRIANGLES, 36,
                                    this.gl_.UNSIGNED_SHORT, 0, 1);
-
-    requestAnimationFrame(this.render_);
   }
 
   destructuring() {
