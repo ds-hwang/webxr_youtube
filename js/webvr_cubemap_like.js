@@ -14,9 +14,9 @@ const CAMERA_SETTINGS = function() {
 
 class WebVR {
   constructor() {
+    this.addEventListeners();
     this.canvas_ = document.createElement('canvas');
-    this.canvas_.width = window.innerWidth;
-    this.canvas_.height = window.innerHeight;
+    this.onResize();
     document.body.appendChild(this.canvas_);
 
     this.gl_ = this.canvas_.getContext('webgl2', {antialias : true});
@@ -35,6 +35,20 @@ class WebVR {
     this.initRenderVariables();
     this.setMouseBehavior();
     this.render_ = this.render.bind(this);
+
+  }
+
+  addEventListeners() {
+    window.addEventListener('resize', this.onResize.bind(this));
+  }
+
+  onResize() {
+    this.width_ = window.innerWidth;
+    this.height_ = window.innerHeight;
+    this.canvas_.width = window.innerWidth;
+    this.canvas_.height = window.innerHeight;
+    this.aspect_ = this.width_ / this.height_;
+    this.initRenderVariables();
   }
 
   initProgram() {
@@ -271,8 +285,7 @@ class WebVR {
 
     this.viewMatrix = mat4.create();
     this.perspectiveMatrix = mat4.create();
-    const aspect = this.canvas_.width / this.canvas_.height;
-    mat4.perspective(this.perspectiveMatrix, CAMERA_SETTINGS.fov, aspect,
+    mat4.perspective(this.perspectiveMatrix, CAMERA_SETTINGS.fov, this.aspect_,
                      CAMERA_SETTINGS.near, CAMERA_SETTINGS.far);
   }
 
@@ -325,6 +338,7 @@ class WebVR {
 
   render() {
     // -- Render
+    this.gl_.viewport(0, 0, this.width_, this.height_);
     this.gl_.clearColor(0.0, 0.0, 0.0, 1.0);
     this.gl_.clear(this.gl_.COLOR_BUFFER_BIT);
 
