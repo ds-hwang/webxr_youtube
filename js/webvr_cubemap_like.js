@@ -4,29 +4,51 @@
 
 'use strict';
 
-(function () {
+(function() {
+const CAMERA_SETTINGS = function() {
+  return {fov : 60 * Math.PI / 180, near : 0.01, far : 10000};
+}();
 
-    let canvas = document.createElement('canvas');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    document.body.appendChild(canvas);
+class WebVR {
+  constructor() {
+    this.canvas_ = document.createElement('canvas');
+    this.canvas_.width = window.innerWidth;
+    this.canvas_.height = window.innerHeight;
+    document.body.appendChild(this.canvas_);
 
-    let gl = canvas.getContext('webgl2', { antialias: true });
-    const isWebGL2 = !!gl;
+    this.gl_ = this.canvas_.getContext('webgl2', {antialias : true});
+    const isWebGL2 = !!this.gl_;
     if (!isWebGL2) {
-        document.getElementById('info').innerHTML = 'WebGL 2 is not available.' +
-            ' See <a href="https://www.khronos.org/webgl/wiki/Getting_a_WebGL_Implementation">' +
-            ' How to get a WebGL 2 implementation</a>';
-        return;
+      document.getElementById('info').innerHTML =
+          'WebGL 2 is not available.' +
+          ' See <a href="https://www.khronos.org/webgl/wiki/Getting_a_WebGL_Implementation">' +
+          ' How to get a WebGL 2 implementation</a>';
+      return;
     }
 
-    // -- Init program
-    let program = createProgram(gl, getShaderSource('vs'), getShaderSource('fs'));
-    let mvMatrixLocation = gl.getUniformLocation(program, 'mvMatrix');
-    let pMatrixLocation = gl.getUniformLocation(program, 'pMatrix');
-    let textureLocation = gl.getUniformLocation(program, 'sTexture');
-    let texScaleLocation = gl.getUniformLocation(program, 'uTexScale');
+    this.initProgram();
+    this.setVertexArray();
+    this.initTexture();
+    this.initRenderVariables();
+    this.setMouseBehavior();
+    this.render_ = this.render.bind(this);
+  }
 
+  initProgram() {
+    this.program_ =
+        createProgram(this.gl_, getShaderSource('vs'), getShaderSource('fs'));
+    this.mvMatrixLocation_ =
+        this.gl_.getUniformLocation(this.program_, 'mvMatrix');
+    this.pMatrixLocation_ =
+        this.gl_.getUniformLocation(this.program_, 'pMatrix');
+    this.textureLocation_ =
+        this.gl_.getUniformLocation(this.program_, 'sTexture');
+    this.texScaleLocation_ =
+        this.gl_.getUniformLocation(this.program_, 'uTexScale');
+  }
+
+  setVertexArray() {
+    /* clang-format off */
     // -- Init buffers
     const positions = new Float32Array([
         // Front face
@@ -65,11 +87,13 @@
         -1.0, 1.0, -1.0,
         -1.0, 1.0, 1.0
     ]);
-    let vertexPosBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexPosBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    /* clang-format on */
+    this.vertexPosBuffer_ = this.gl_.createBuffer();
+    this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, this.vertexPosBuffer_);
+    this.gl_.bufferData(this.gl_.ARRAY_BUFFER, positions, this.gl_.STATIC_DRAW);
+    this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, null);
 
+    /* clang-format off */
     const texCoords = new Float32Array([
         // Front face
         0.0, 1.0,
@@ -107,11 +131,13 @@
         1.0, 0.0,
         0.0, 0.0,
     ]);
-    let vertexTexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    /* clang-format on */
+    this.vertexTexBuffer_ = this.gl_.createBuffer();
+    this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, this.vertexTexBuffer_);
+    this.gl_.bufferData(this.gl_.ARRAY_BUFFER, texCoords, this.gl_.STATIC_DRAW);
+    this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, null);
 
+    /* clang-format off */
     const texOffsetCoords = new Float32Array([
         // Front face
         1. / 3, 1. / 2,
@@ -149,168 +175,189 @@
         1. / 3, 0,
         1. / 3, 0,
     ]);
-    let vertexTexOffsetBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexOffsetBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, texOffsetCoords, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    /* clang-format on */
+    this.vertexTexOffsetBuffer_ = this.gl_.createBuffer();
+    this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, this.vertexTexOffsetBuffer_);
+    this.gl_.bufferData(this.gl_.ARRAY_BUFFER, texOffsetCoords,
+                        this.gl_.STATIC_DRAW);
+    this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, null);
 
     // Element buffer
-    let indexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    this.indexBuffer_ = this.gl_.createBuffer();
+    this.gl_.bindBuffer(this.gl_.ELEMENT_ARRAY_BUFFER, this.indexBuffer_);
 
     const cubeVertexIndices = [
-        0, 1, 2, 0, 2, 3,    // front
-        4, 5, 6, 4, 6, 7,    // back
-        8, 9, 10, 8, 10, 11,   // top
-        12, 13, 14, 12, 14, 15,   // bottom
-        16, 17, 18, 16, 18, 19,   // right
-        20, 21, 22, 20, 22, 23    // left
+      0,  1,  2,  0,  2,  3,  // front
+      4,  5,  6,  4,  6,  7,  // back
+      8,  9,  10, 8,  10, 11, // top
+      12, 13, 14, 12, 14, 15, // bottom
+      16, 17, 18, 16, 18, 19, // right
+      20, 21, 22, 20, 22, 23  // left
     ];
 
     // Now send the element array to GL
-
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
+    this.gl_.bufferData(this.gl_.ELEMENT_ARRAY_BUFFER,
+                        new Uint16Array(cubeVertexIndices),
+                        this.gl_.STATIC_DRAW);
 
     // -- Init VertexArray
-    let vertexArray = gl.createVertexArray();
-    gl.bindVertexArray(vertexArray);
+    this.vertexArray_ = this.gl_.createVertexArray();
+    this.gl_.bindVertexArray(this.vertexArray_);
 
     // set with GLSL layout qualifier
     const vertexPosLocation = 0;
     const vertexTexLocation = 1;
     const vertexTexOffsetLocation = 2;
 
-    gl.enableVertexAttribArray(vertexPosLocation);
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexPosBuffer);
-    gl.vertexAttribPointer(vertexPosLocation, 3, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    this.gl_.enableVertexAttribArray(vertexPosLocation);
+    this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, this.vertexPosBuffer_);
+    this.gl_.vertexAttribPointer(vertexPosLocation, 3, this.gl_.FLOAT, false, 0,
+                                 0);
+    this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, null);
 
-    gl.enableVertexAttribArray(vertexTexLocation);
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexBuffer);
-    gl.vertexAttribPointer(vertexTexLocation, 2, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    this.gl_.enableVertexAttribArray(vertexTexLocation);
+    this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, this.vertexTexBuffer_);
+    this.gl_.vertexAttribPointer(vertexTexLocation, 2, this.gl_.FLOAT, false, 0,
+                                 0);
+    this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, null);
 
-    gl.enableVertexAttribArray(vertexTexOffsetLocation);
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexOffsetBuffer);
-    gl.vertexAttribPointer(vertexTexOffsetLocation, 2, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    this.gl_.enableVertexAttribArray(vertexTexOffsetLocation);
+    this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, this.vertexTexOffsetBuffer_);
+    this.gl_.vertexAttribPointer(vertexTexOffsetLocation, 2, this.gl_.FLOAT,
+                                 false, 0, 0);
+    this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, null);
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    this.gl_.bindBuffer(this.gl_.ELEMENT_ARRAY_BUFFER, this.indexBuffer_);
 
-    gl.bindVertexArray(null);
+    this.gl_.bindVertexArray(null);
+  }
 
-    // -- Init Texture
+  initTexture() {
     const imageUrl = 'images/cubemap.jpeg';
-    let texture;
-    loadImage(imageUrl, function (image) {
-        // -- Init 2D Texture
-        texture = gl.createTexture();
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    this.texture_;
+    loadImage(imageUrl, this.onLoadImage.bind(this));
+  }
 
-        // -- Allocate storage for the texture
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
-        gl.generateMipmap(gl.TEXTURE_2D);
+  onLoadImage(image) {
+    // -- Init 2D Texture
+    this.texture_ = this.gl_.createTexture();
+    this.gl_.activeTexture(this.gl_.TEXTURE0);
+    this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.texture_);
+    this.gl_.pixelStorei(this.gl_.UNPACK_FLIP_Y_WEBGL, false);
+    this.gl_.texParameteri(this.gl_.TEXTURE_2D, this.gl_.TEXTURE_MAG_FILTER,
+                           this.gl_.LINEAR);
+    this.gl_.texParameteri(this.gl_.TEXTURE_2D, this.gl_.TEXTURE_MIN_FILTER,
+                           this.gl_.LINEAR);
+    this.gl_.texParameteri(this.gl_.TEXTURE_2D, this.gl_.TEXTURE_WRAP_S,
+                           this.gl_.CLAMP_TO_EDGE);
+    this.gl_.texParameteri(this.gl_.TEXTURE_2D, this.gl_.TEXTURE_WRAP_T,
+                           this.gl_.CLAMP_TO_EDGE);
 
-        requestAnimationFrame(render);
+    // -- Allocate storage for the texture
+    this.gl_.texImage2D(this.gl_.TEXTURE_2D, 0, this.gl_.RGB, this.gl_.RGB,
+                        this.gl_.UNSIGNED_BYTE, image);
+    this.gl_.generateMipmap(this.gl_.TEXTURE_2D);
 
-    });
+    requestAnimationFrame(this.render_);
+  }
 
-    // -- Initialize render variables
-    let modelMatrix = mat4.create();
-    let modelQuat = quat.create();
-    let mvMatrix = mat4.create();
+  initRenderVariables() {
+    this.modelMatrix = mat4.create();
+    this.modelQuat = quat.create();
+    this.mvMatrix = mat4.create();
 
-    let viewMatrix = mat4.create();
-    let perspectiveMatrix = mat4.create();
-    const fov = 60 * Math.PI / 180;
-    const aspect = canvas.width / canvas.height;
-    const near = 0.01;
-    const far = 10000;
-    mat4.perspective(perspectiveMatrix, fov, aspect, near, far);
+    this.viewMatrix = mat4.create();
+    this.perspectiveMatrix = mat4.create();
+    const aspect = this.canvas_.width / this.canvas_.height;
+    mat4.perspective(this.perspectiveMatrix, CAMERA_SETTINGS.fov, aspect,
+                     CAMERA_SETTINGS.near, CAMERA_SETTINGS.far);
+  }
 
-    // -- Mouse Behaviour
-    let mouseDown = false;
-    let lastMouseX = 0;
-    let lastMouseY = 0;
+  setMouseBehavior() {
+    this.mouseDown = false;
+    this.lastMouseX = 0;
+    this.lastMouseY = 0;
 
-    canvas.onmousedown = function (event) {
-        mouseDown = true;
-        lastMouseX = event.clientX;
-        lastMouseY = event.clientY;
-    };
+    this.canvas_.onmousedown = this.onMouseDown.bind(this);
+    this.canvas_.onmouseup = this.onMouseUp.bind(this);
+    this.canvas_.onmousemove = this.onMouseMove.bind(this);
+  }
 
-    canvas.onmouseup = function (event) {
-        mouseDown = false;
-    };
+  onMouseDown(event) {
+    this.mouseDown = true;
+    this.lastMouseX = event.clientX;
+    this.lastMouseY = event.clientY;
+  };
 
-    canvas.onmousemove = function (event) {
-        if (mouseDown) {
-            const newX = event.clientX;
-            const newY = event.clientY;
+  onMouseUp(event) { this.mouseDown = false; }
 
-            const amplifier = 0.1;
-            let deltaY = -(newX - lastMouseX) * amplifier;
-            let deltaX = -(newY - lastMouseY) * amplifier;
+  onMouseMove(event) {
+    if (this.mouseDown) {
+      const newX = event.clientX;
+      const newY = event.clientY;
 
-            // horizontal rotation doesn't bother with vertical.
-            let snap = 4;
-            if (Math.abs(deltaY) > (snap * Math.abs(deltaX))) {
-                deltaX = 0;
-            } else if (Math.abs(deltaX) > (snap * Math.abs(deltaY))) {
-                deltaY = 0;
-            }
+      const amplifier = 0.1;
+      let deltaY = -(newX - this.lastMouseX) * amplifier;
+      let deltaX = -(newY - this.lastMouseY) * amplifier;
 
-            let dq = quat.create();
-            quat.fromEuler(dq, deltaX, deltaY, 0);
-            // https://github.com/ds-hwang/wiki/wiki/VR-mathematics:-opengl-matrix,-transform,-quaternion,-euler-angles,-homography-transformation,-reprojection#dq--q2q1
-            // q2 = dq·q1
-            quat.multiply(modelQuat, dq, modelQuat);
-            mat4.fromQuat(modelMatrix, modelQuat);
+      // horizontal rotation doesn't bother with vertical.
+      let snap = 4;
+      if (Math.abs(deltaY) > (snap * Math.abs(deltaX))) {
+        deltaX = 0;
+      } else if (Math.abs(deltaX) > (snap * Math.abs(deltaY))) {
+        deltaY = 0;
+      }
 
-            lastMouseX = newX;
-            lastMouseY = newY;
-        }
-    };
+      let dq = quat.create();
+      quat.fromEuler(dq, deltaX, deltaY, 0);
+      // https://github.com/ds-hwang/wiki/wiki/VR-mathematics:-opengl-matrix,-transform,-quaternion,-euler-angles,-homography-transformation,-reprojection#dq--q2q1
+      // q2 = dq·q1
+      quat.multiply(this.modelQuat, dq, this.modelQuat);
+      mat4.fromQuat(this.modelMatrix, this.modelQuat);
 
-    function render() {
-        // -- Render
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-
-        gl.enable(gl.DEPTH_TEST);
-        gl.enable(gl.CULL_FACE);
-        gl.cullFace(gl.BACK);
-
-        mat4.multiply(mvMatrix, viewMatrix, modelMatrix);
-
-        gl.bindVertexArray(vertexArray);
-        gl.useProgram(program);
-        gl.uniformMatrix4fv(mvMatrixLocation, false, mvMatrix);
-        gl.uniformMatrix4fv(pMatrixLocation, false, perspectiveMatrix);
-        gl.uniform1i(textureLocation, 0);
-        gl.uniform2f(texScaleLocation, 1 / 3, 1 / 2);
-
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-
-        gl.drawElementsInstanced(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0, 1);
-
-        requestAnimationFrame(render);
+      this.lastMouseX = newX;
+      this.lastMouseY = newY;
     }
+  }
 
-    // If you have a long-running page, and need to delete WebGL resources, use:
-    //
-    // gl.deleteBuffer(vertexPosBuffer);
-    // gl.deleteBuffer(vertexTexBuffer);
-    // gl.deleteBuffer(indexBuffer);
-    // gl.deleteTexture(texture);
-    // gl.deleteProgram(program);
-    // gl.deleteVertexArray(vertexArray);
+  render() {
+    // -- Render
+    this.gl_.clearColor(0.0, 0.0, 0.0, 1.0);
+    this.gl_.clear(this.gl_.COLOR_BUFFER_BIT);
 
+    this.gl_.enable(this.gl_.DEPTH_TEST);
+    this.gl_.enable(this.gl_.CULL_FACE);
+    this.gl_.cullFace(this.gl_.BACK);
+
+    mat4.multiply(this.mvMatrix, this.viewMatrix, this.modelMatrix);
+
+    this.gl_.bindVertexArray(this.vertexArray_);
+    this.gl_.useProgram(this.program_);
+    this.gl_.uniformMatrix4fv(this.mvMatrixLocation_, false, this.mvMatrix);
+    this.gl_.uniformMatrix4fv(this.pMatrixLocation_, false,
+                              this.perspectiveMatrix);
+    this.gl_.uniform1i(this.textureLocation_, 0);
+    this.gl_.uniform2f(this.texScaleLocation_, 1 / 3, 1 / 2);
+
+    this.gl_.activeTexture(this.gl_.TEXTURE0);
+    this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.texture_);
+
+    this.gl_.drawElementsInstanced(this.gl_.TRIANGLES, 36,
+                                   this.gl_.UNSIGNED_SHORT, 0, 1);
+
+    requestAnimationFrame(this.render_);
+  }
+
+  destructuring() {
+    this.gl_.deleteBuffer(this.vertexPosBuffer_);
+    this.gl_.deleteBuffer(this.vertexTexBuffer_);
+    this.gl_.deleteBuffer(this.vertexTexOffsetBuffer_);
+    this.gl_.deleteBuffer(this.indexBuffer_);
+    this.gl_.deleteTexture(this.texture_);
+    this.gl_.deleteProgram(this.program_);
+    this.gl_.deleteVertexArray(this.vertexArray_);
+  }
+}
+
+new WebVR();
 })();
