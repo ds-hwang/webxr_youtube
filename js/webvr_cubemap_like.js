@@ -6,13 +6,13 @@
 
 (function () {
 
-    var canvas = document.createElement('canvas');
+    let canvas = document.createElement('canvas');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     document.body.appendChild(canvas);
 
-    var gl = canvas.getContext('webgl2', { antialias: true });
-    var isWebGL2 = !!gl;
+    let gl = canvas.getContext('webgl2', { antialias: true });
+    const isWebGL2 = !!gl;
     if (!isWebGL2) {
         document.getElementById('info').innerHTML = 'WebGL 2 is not available.' +
             ' See <a href="https://www.khronos.org/webgl/wiki/Getting_a_WebGL_Implementation">' +
@@ -21,14 +21,14 @@
     }
 
     // -- Init program
-    var program = createProgram(gl, getShaderSource('vs'), getShaderSource('fs'));
-    var mvMatrixLocation = gl.getUniformLocation(program, 'mvMatrix');
-    var pMatrixLocation = gl.getUniformLocation(program, 'pMatrix');
-    var textureLocation = gl.getUniformLocation(program, 'sTexture');
-    var texScaleLocation = gl.getUniformLocation(program, 'uTexScale');
+    let program = createProgram(gl, getShaderSource('vs'), getShaderSource('fs'));
+    let mvMatrixLocation = gl.getUniformLocation(program, 'mvMatrix');
+    let pMatrixLocation = gl.getUniformLocation(program, 'pMatrix');
+    let textureLocation = gl.getUniformLocation(program, 'sTexture');
+    let texScaleLocation = gl.getUniformLocation(program, 'uTexScale');
 
     // -- Init buffers
-    var positions = new Float32Array([
+    const positions = new Float32Array([
         // Front face
         -1.0, -1.0, -1.0,
         1.0, -1.0, -1.0,
@@ -65,12 +65,12 @@
         -1.0, 1.0, -1.0,
         -1.0, 1.0, 1.0
     ]);
-    var vertexPosBuffer = gl.createBuffer();
+    let vertexPosBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexPosBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-    var texCoords = new Float32Array([
+    const texCoords = new Float32Array([
         // Front face
         0.0, 1.0,
         1.0, 1.0,
@@ -107,12 +107,12 @@
         1.0, 0.0,
         0.0, 0.0,
     ]);
-    var vertexTexBuffer = gl.createBuffer();
+    let vertexTexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-    var texOffsetCoords = new Float32Array([
+    const texOffsetCoords = new Float32Array([
         // Front face
         1. / 3, 1. / 2,
         1. / 3, 1. / 2,
@@ -149,16 +149,16 @@
         1. / 3, 0,
         1. / 3, 0,
     ]);
-    var vertexTexOffsetBuffer = gl.createBuffer();
+    let vertexTexOffsetBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexOffsetBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, texOffsetCoords, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
     // Element buffer
-    var indexBuffer = gl.createBuffer();
+    let indexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
-    var cubeVertexIndices = [
+    const cubeVertexIndices = [
         0, 1, 2, 0, 2, 3,    // front
         4, 5, 6, 4, 6, 7,    // back
         8, 9, 10, 8, 10, 11,   // top
@@ -172,13 +172,13 @@
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
 
     // -- Init VertexArray
-    var vertexArray = gl.createVertexArray();
+    let vertexArray = gl.createVertexArray();
     gl.bindVertexArray(vertexArray);
 
     // set with GLSL layout qualifier
-    var vertexPosLocation = 0;
-    var vertexTexLocation = 1;
-    var vertexTexOffsetLocation = 2;
+    const vertexPosLocation = 0;
+    const vertexTexLocation = 1;
+    const vertexTexOffsetLocation = 2;
 
     gl.enableVertexAttribArray(vertexPosLocation);
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexPosBuffer);
@@ -200,8 +200,8 @@
     gl.bindVertexArray(null);
 
     // -- Init Texture
-    var imageUrl = 'images/cubemap.jpeg';
-    var texture;
+    const imageUrl = 'images/cubemap.jpeg';
+    let texture;
     loadImage(imageUrl, function (image) {
         // -- Init 2D Texture
         texture = gl.createTexture();
@@ -222,22 +222,22 @@
     });
 
     // -- Initialize render variables
-    var modelMatrix = mat4.create();
-    var modelQuat = quat.create();
-    var mvMatrix = mat4.create();
+    let modelMatrix = mat4.create();
+    let modelQuat = quat.create();
+    let mvMatrix = mat4.create();
 
-    var viewMatrix = mat4.create();
-    var perspectiveMatrix = mat4.create();
-    var fov = 60 * Math.PI / 180;
-    var aspect = canvas.width / canvas.height;
-    var near = 0.01;
-    var far = 10000;
+    let viewMatrix = mat4.create();
+    let perspectiveMatrix = mat4.create();
+    const fov = 60 * Math.PI / 180;
+    const aspect = canvas.width / canvas.height;
+    const near = 0.01;
+    const far = 10000;
     mat4.perspective(perspectiveMatrix, fov, aspect, near, far);
 
     // -- Mouse Behaviour
-    var mouseDown = false;
-    var lastMouseX = 0;
-    var lastMouseY = 0;
+    let mouseDown = false;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
 
     canvas.onmousedown = function (event) {
         mouseDown = true;
@@ -251,22 +251,22 @@
 
     canvas.onmousemove = function (event) {
         if (mouseDown) {
-            var newX = event.clientX;
-            var newY = event.clientY;
+            const newX = event.clientX;
+            const newY = event.clientY;
 
-            var amplifier = 0.1;
-            var deltaY = -(newX - lastMouseX) * amplifier;
-            var deltaX = -(newY - lastMouseY) * amplifier;
+            const amplifier = 0.1;
+            let deltaY = -(newX - lastMouseX) * amplifier;
+            let deltaX = -(newY - lastMouseY) * amplifier;
 
             // horizontal rotation doesn't bother with vertical.
-            var snap = 4;
+            let snap = 4;
             if (Math.abs(deltaY) > (snap * Math.abs(deltaX))) {
                 deltaX = 0;
             } else if (Math.abs(deltaX) > (snap * Math.abs(deltaY))) {
                 deltaY = 0;
             }
 
-            var dq = quat.create();
+            let dq = quat.create();
             quat.fromEuler(dq, deltaX, deltaY, 0);
             // https://github.com/ds-hwang/wiki/wiki/VR-mathematics:-opengl-matrix,-transform,-quaternion,-euler-angles,-homography-transformation,-reprojection#dq--q2q1
             // q2 = dq·q1
