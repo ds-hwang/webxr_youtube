@@ -42,3 +42,7 @@ a {
     border: none;
     font-size: 14px;
 }
+
+#video {
+    display: none;
+}

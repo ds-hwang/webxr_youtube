@@ -14,7 +14,7 @@ const CAMERA_SETTINGS = function() {
 
 class WebVR {
   constructor() {
-    this.addEventListeners();
+    window.addEventListener('resize', this.onResize.bind(this));
     this.canvas_ = document.createElement('canvas');
     this.onResize();
     document.body.appendChild(this.canvas_);
@@ -45,6 +45,14 @@ class WebVR {
 
     this.addVREventListeners();
     this.getDisplays();
+  }
+
+  onResize() {
+    this.width_ = window.innerWidth;
+    this.height_ = window.innerHeight;
+    this.canvas_.width = this.width_;
+    this.canvas_.height = this.height_;
+    this.initRenderVariables();
   }
 
   showWebVRNotSupportedError() { console.error('WebVR not supported'); }
@@ -107,18 +115,6 @@ class WebVR {
       return this.deactivateVR();
 
     return this.activateVR();
-  }
-
-  addEventListeners() {
-    window.addEventListener('resize', this.onResize.bind(this));
-  }
-
-  onResize() {
-    this.width_ = window.innerWidth;
-    this.height_ = window.innerHeight;
-    this.canvas_.width = this.width_;
-    this.canvas_.height = this.height_;
-    this.initRenderVariables();
   }
 
   initProgram() {
@@ -325,32 +321,39 @@ class WebVR {
   }
 
   initTexture() {
-    const imageUrl = 'images/cubemap.jpeg';
-    this.texture_;
-    util.loadImage(imageUrl, this.onLoadImage.bind(this));
-  }
+    //'Clash of Clans 360 - Experience a Virtual Reality Raid.mkv'
+    this.videoElement_ = document.getElementById("video");
+    this.videoElement_.addEventListener('error', ev => {
+      console.log(
+          "\nmp4 codec is not supported on this platform. Received error event:" +
+          ev.target.error.code + "\n");
+    }, false);
+    this.videoElement_.addEventListener("playing", _ => {
+      // -- Init 2D Texture
+      this.texture_ = this.gl_.createTexture();
+      this.gl_.activeTexture(this.gl_.TEXTURE0);
+      this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.texture_);
+      this.gl_.pixelStorei(this.gl_.UNPACK_FLIP_Y_WEBGL, false);
+      this.gl_.texParameteri(this.gl_.TEXTURE_2D, this.gl_.TEXTURE_MAG_FILTER,
+                             this.gl_.LINEAR);
+      this.gl_.texParameteri(this.gl_.TEXTURE_2D, this.gl_.TEXTURE_MIN_FILTER,
+                             this.gl_.LINEAR);
+      this.gl_.texParameteri(this.gl_.TEXTURE_2D, this.gl_.TEXTURE_WRAP_S,
+                             this.gl_.CLAMP_TO_EDGE);
+      this.gl_.texParameteri(this.gl_.TEXTURE_2D, this.gl_.TEXTURE_WRAP_T,
+                             this.gl_.CLAMP_TO_EDGE);
 
-  onLoadImage(image) {
-    // -- Init 2D Texture
-    this.texture_ = this.gl_.createTexture();
-    this.gl_.activeTexture(this.gl_.TEXTURE0);
-    this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.texture_);
-    this.gl_.pixelStorei(this.gl_.UNPACK_FLIP_Y_WEBGL, false);
-    this.gl_.texParameteri(this.gl_.TEXTURE_2D, this.gl_.TEXTURE_MAG_FILTER,
-                           this.gl_.LINEAR);
-    this.gl_.texParameteri(this.gl_.TEXTURE_2D, this.gl_.TEXTURE_MIN_FILTER,
-                           this.gl_.LINEAR);
-    this.gl_.texParameteri(this.gl_.TEXTURE_2D, this.gl_.TEXTURE_WRAP_S,
-                           this.gl_.CLAMP_TO_EDGE);
-    this.gl_.texParameteri(this.gl_.TEXTURE_2D, this.gl_.TEXTURE_WRAP_T,
-                           this.gl_.CLAMP_TO_EDGE);
+      // -- Allocate storage for the texture
+      this.gl_.texImage2D(this.gl_.TEXTURE_2D, 0, this.gl_.RGB, this.gl_.RGB,
+                          this.gl_.UNSIGNED_BYTE, this.videoElement_);
 
-    // -- Allocate storage for the texture
-    this.gl_.texImage2D(this.gl_.TEXTURE_2D, 0, this.gl_.RGB, this.gl_.RGB,
-                        this.gl_.UNSIGNED_BYTE, image);
-    this.gl_.generateMipmap(this.gl_.TEXTURE_2D);
+      requestAnimationFrame(this.render_);
 
-    requestAnimationFrame(this.render_);
+    }, {capture : false, once : true});
+    this.videoElement_.src =
+        "images/Clash of Clans 360 - Experience a Virtual Reality Raid.mkv";
+    this.videoElement_.loop = true;
+    this.videoElement_.play();
   }
 
   initRenderVariables() {
@@ -421,6 +424,8 @@ class WebVR {
   }
 
   render() {
+    this.updateTexture();
+
     this.gl_.clear(this.gl_.COLOR_BUFFER_BIT);
     if (!this.isVrMode()) {
       const viewport = {x : 0, y : 0, w : this.width_, h : this.height_};
@@ -453,6 +458,15 @@ class WebVR {
     // Use the VR display's in-built rAF (which can be a diff refresh rate to
     // the default browser one).
     this.vr_.display.requestAnimationFrame(this.render_);
+  }
+
+  updateTexture() {
+    this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.texture_);
+    this.gl_.pixelStorei(this.gl_.UNPACK_FLIP_Y_WEBGL, false);
+    this.gl_.texSubImage2D(this.gl_.TEXTURE_2D, 0,
+                           this.videoElement_.videoWidth,
+                           this.videoElement_.videoHeight, this.gl_.RGB,
+                           this.gl_.UNSIGNED_BYTE, this.videoElement_);
   }
 
   renderEye(viewport, mvMatrix, projectionMatrix) {
