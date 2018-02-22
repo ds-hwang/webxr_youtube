@@ -7,7 +7,7 @@
 // TODO(dshwang): enable it when supported.
 // import defaultExport from 'utility';
 
-(function() {
+(function(stratage) {
 const CAMERA_SETTINGS = function() {
   return {fov : 60 * Math.PI / 180, near : 0.01, far : 10000};
 }();
@@ -185,89 +185,13 @@ class WebVR {
     this.gl_.bufferData(this.gl_.ARRAY_BUFFER, positions, this.gl_.STATIC_DRAW);
     this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, null);
 
-    /* clang-format off */
-    const texCoords = new Float32Array([
-      // Front face
-      0.0, 1.0,
-      1.0, 1.0,
-      1.0, 0.0,
-      0.0, 0.0,
-
-      // Back face
-      0.0, 0.0,
-      0.0, 1.0,
-      1.0, 1.0,
-      1.0, 0.0,
-
-      // Top face
-      1.0, 1.0,
-      1.0, 0.0,
-      0.0, 0.0,
-      0.0, 1.0,
-
-      // Bottom face
-      1.0, 1.0,
-      1.0, 0.0,
-      0.0, 0.0,
-      0.0, 1.0,
-
-      // Right face
-      0.0, 1.0,
-      1.0, 1.0,
-      1.0, 0.0,
-      0.0, 0.0,
-
-      // Left face
-      0.0, 1.0,
-      1.0, 1.0,
-      1.0, 0.0,
-      0.0, 0.0,
-    ]);
-    /* clang-format on */
+    const texCoords = stratage.getTexCoords();
     this.vertexTexBuffer_ = this.gl_.createBuffer();
     this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, this.vertexTexBuffer_);
     this.gl_.bufferData(this.gl_.ARRAY_BUFFER, texCoords, this.gl_.STATIC_DRAW);
     this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, null);
 
-    /* clang-format off */
-    const texOffsetCoords = new Float32Array([
-      // Front face
-      1. / 3, 0,
-      1. / 3, 0,
-      1. / 3, 0,
-      1. / 3, 0,
-
-      // Back face
-      1. / 3, 1. / 2,
-      1. / 3, 1. / 2,
-      1. / 3, 1. / 2,
-      1. / 3, 1. / 2,
-
-      // Top face
-      2. / 3, 1. / 2,
-      2. / 3, 1. / 2,
-      2. / 3, 1. / 2,
-      2. / 3, 1. / 2,
-
-      // Bottom face
-      0, 1. / 2,
-      0, 1. / 2,
-      0, 1. / 2,
-      0, 1. / 2,
-
-      // Right face
-      2. / 3, 0,
-      2. / 3, 0,
-      2. / 3, 0,
-      2. / 3, 0,
-
-      // Left face
-      0, 0,
-      0, 0,
-      0, 0,
-      0, 0,
-    ]);
-    /* clang-format on */
+    const texOffsetCoords = stratage.getTexOffsetCoords();
     this.vertexTexOffsetBuffer_ = this.gl_.createBuffer();
     this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, this.vertexTexOffsetBuffer_);
     this.gl_.bufferData(this.gl_.ARRAY_BUFFER, texOffsetCoords,
@@ -325,10 +249,7 @@ class WebVR {
   }
 
   initTexture() {
-    const imageUrl = 'images/Clash of Clans 360.png';
-    // const imageUrl = 'images/VikingVillage.png';
-    this.texture_;
-    util.loadImage(imageUrl, this.onLoadImage.bind(this));
+    stratage.loadImageSource(this.onLoadImage.bind(this));
   }
 
   onLoadImage(image) {
@@ -479,4 +400,4 @@ class WebVR {
 }
 
 new WebVR();
-})();
+})(stratage);
