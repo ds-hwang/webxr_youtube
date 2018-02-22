@@ -15,11 +15,10 @@ found in the LICENSE file.
 </head>
 
 <body>
-  <div id="info">WebGL 2 Samples - webvr from single source img</div>
+  <div id="info">WebGL 2 Samples - webvr from single source video</div>
   <p id="description">
-    This sample uses single image including 6 faces and display environment by the image.
+    This sample uses single video including 6 faces and display environment by the video.
   </p>
-  <video id="video"> </video>
 
   <!-- WebGL 2 shaders -->
   <script id="vs" type="x-shader/x-vertex">
@@ -166,7 +165,9 @@ found in the LICENSE file.
       }
 
       function loadImageSource(onLoad) {
-        let videoElement_ = document.getElementById("video");
+        let videoElement_ = document.createElement("video");
+        videoElement_.setAttribute("id", "video");
+        document.body.appendChild(videoElement_);
         videoElement_.addEventListener('error', ev => {
           console.log(
             "\nmp4 codec is not supported on this platform. Received error event:" +
@@ -197,7 +198,6 @@ found in the LICENSE file.
     var stratage = getStratage();
   </script>
   <script src="js/webvr.js"></script>
-  <div id="highlightedLines" style="display: none">#L63</div>
 </body>
 
 </html>
