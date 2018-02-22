@@ -1,10 +1,11 @@
 # webxr_youtube
 * webxr-ficate 360 Youtube video.
-* Youtube 360 video is compressed by Equi-Angular Cubemap.
-* This project shows how to present the video in VR space.
+* Youtube 360 video is projected by Equi-Angular Cubemap.
+* This project shows how to present the video in VR space using WebGL.
+* You can rotate the scene by mouse drag in case no HMD (i.e. head mount display).
 
 # Code
-* webvr_cubemap_liek.html : construct VR using cubemap image.
+* webvr_cubemap_like.html : construct VR using cubemap image.
 * webvr_video_img.html : construct VR using Equi-angular cubemap image.
 * webvr_video.html : construct VR using Youtube 360 video.
 
