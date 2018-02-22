@@ -22,59 +22,64 @@ found in the LICENSE file.
 
   <!-- WebGL 2 shaders -->
   <script id="vs" type="x-shader/x-vertex">
-        #version 300 es
-        #define POSITION_LOCATION 0
-        #define TEXCOORD_LOCATION 1
-        #define TEX_OFFSET_LOCATION 2
+    #version 300 es
+    #define POSITION_LOCATION 0
+    #define TEXCOORD_LOCATION 1
+    #define TEX_OFFSET_LOCATION 2
 
-        precision highp float;
-        precision highp int;
+    precision highp float;
+    precision highp int;
 
-        uniform mat4 mvMatrix;
-        uniform mat4 pMatrix;
+    uniform mat4 mvMatrix;
+    uniform mat4 pMatrix;
 
-        layout(location = POSITION_LOCATION) in vec3 position;
-        layout(location = TEXCOORD_LOCATION) in vec2 texcoord;
-        layout(location = TEX_OFFSET_LOCATION) in vec2 texOffset;
+    layout(location = POSITION_LOCATION) in vec3 position;
+    layout(location = TEXCOORD_LOCATION) in vec2 texcoord;
+    layout(location = TEX_OFFSET_LOCATION) in vec2 texOffset;
 
-        out vec2 vUV;
-        out vec2 vTexOffset;
-        out vec3 vPosition;
+    out vec2 vUv;
+    out vec2 vTexOffset;
+    out vec3 vPosition;
 
-        void main()
-        {
-            vUV = texcoord;
-            vTexOffset = texOffset;
-            vPosition = vec3(mvMatrix * vec4(position, 1.0));
-            gl_Position = pMatrix * mvMatrix * vec4(position, 1.0);
-        }
-    </script>
+    void main()
+    {
+      vUv = texcoord;
+      vTexOffset = texOffset;
+      vPosition = vec3(mvMatrix * vec4(position, 1.0));
+      gl_Position = pMatrix * mvMatrix * vec4(position, 1.0);
+    }
+  </script>
 
   <script id="fs" type="x-shader/x-fragment">
-        #version 300 es
-        precision highp float;
-        precision highp int;
-        precision highp sampler2D;
+    #version 300 es
+    #define INV_PI_2 0.636619772
+    #define EPSILON 0.0005
+    precision highp float;
+    precision highp int;
+    precision highp sampler2D;
 
-        uniform sampler2D sTexture;
-        uniform vec2 uTexScale;
+    uniform sampler2D sTexture;
+    uniform vec2 uTexScale;
 
-        in vec2 vUV;
-        in vec2 vTexOffset;
-        in vec3 vPosition;
+    in vec2 vUv;
+    in vec2 vTexOffset;
+    in vec3 vPosition;
 
-        out vec4 color;
+    out vec4 color;
 
-        void main()
-        {
-            vec2 size = vec2(textureSize(sTexture, 0));
-            vec2 uv = (vUV * uTexScale) + vTexOffset;
-            vec2 epsilon = vec2(0.0005);
-            uv = clamp(uv, vTexOffset + epsilon, vTexOffset + uTexScale - epsilon);
-            color = texture(sTexture, uv);
-        }
-    </script>
+    void main()
+    {
+      vec2 homogeneouseUv = (vUv * 2.) - 1.;
+      // Get UV on the EAC projection
+      vec2 eacUv = (INV_PI_2 * atan(homogeneouseUv)) + 0.5;
+      vec2 uvFor6Faces = (eacUv * uTexScale) + vTexOffset;
 
+      // Fix bleeding edge
+      uvFor6Faces = clamp(uvFor6Faces, vTexOffset + EPSILON,
+        vTexOffset + uTexScale - EPSILON);
+      color = texture(sTexture, uvFor6Faces);
+    }
+  </script>
   <script src="js/utility.js"></script>
   <script src="js/gl-matrix.js"></script>
   <script>
