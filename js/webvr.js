@@ -249,10 +249,10 @@ class WebVR {
   }
 
   initTexture() {
-    stratage.loadImageSource(this.onLoadImage.bind(this));
+    stratage.loadImageSource(this.onLoadImageSource.bind(this));
   }
 
-  onLoadImage(image) {
+  onLoadImageSource(imageSource) {
     // -- Init 2D Texture
     this.texture_ = this.gl_.createTexture();
     this.gl_.activeTexture(this.gl_.TEXTURE0);
@@ -269,8 +269,7 @@ class WebVR {
 
     // -- Allocate storage for the texture
     this.gl_.texImage2D(this.gl_.TEXTURE_2D, 0, this.gl_.RGB, this.gl_.RGB,
-                        this.gl_.UNSIGNED_BYTE, image);
-    this.gl_.generateMipmap(this.gl_.TEXTURE_2D);
+                        this.gl_.UNSIGNED_BYTE, imageSource);
 
     requestAnimationFrame(this.render_);
   }
@@ -338,6 +337,7 @@ class WebVR {
   }
 
   render() {
+    stratage.updateTexture(this.gl_, this.texture_);
     this.gl_.clear(this.gl_.COLOR_BUFFER_BIT);
     if (!this.isVrMode()) {
       const viewport = {x : 0, y : 0, w : this.width_, h : this.height_};
