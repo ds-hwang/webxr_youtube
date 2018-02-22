@@ -379,7 +379,8 @@ class WebVR {
     this.gl_.uniformMatrix4fv(this.mvMatrixLocation_, false, mvMatrix);
     this.gl_.uniformMatrix4fv(this.pMatrixLocation_, false, projectionMatrix);
     this.gl_.uniform1i(this.textureLocation_, 0);
-    this.gl_.uniform2f(this.texScaleLocation_, 1 / 3, 1 / 2);
+    const scale = stratage.getScale();
+    this.gl_.uniform2f(this.texScaleLocation_, scale.x, scale.y);
 
     this.gl_.activeTexture(this.gl_.TEXTURE0);
     this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.texture_);
