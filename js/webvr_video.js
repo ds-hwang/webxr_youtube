@@ -463,8 +463,7 @@ class WebVR {
   updateTexture() {
     this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.texture_);
     this.gl_.pixelStorei(this.gl_.UNPACK_FLIP_Y_WEBGL, false);
-    this.gl_.texSubImage2D(this.gl_.TEXTURE_2D, 0,
-                           this.videoElement_.width,
+    this.gl_.texSubImage2D(this.gl_.TEXTURE_2D, 0, this.videoElement_.width,
                            this.videoElement_.height, this.gl_.RGB,
                            this.gl_.UNSIGNED_BYTE, this.videoElement_);
   }

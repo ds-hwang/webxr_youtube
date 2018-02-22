@@ -355,11 +355,9 @@ class WebVR {
   }
 
   initRenderVariables() {
-    this.modelMatrix_ = mat4.create();
-    this.modelQuat_ = quat.create();
     this.mvMatrix_ = mat4.create();
+    this.rotationVec_ = vec3.create();
 
-    this.viewMatrix_ = mat4.create();
     this.projectionMatrix_ = mat4.create();
 
     const aspect = this.width_ / this.height_;
@@ -393,24 +391,21 @@ class WebVR {
       const newX = event.clientX;
       const newY = event.clientY;
 
-      const amplifier = 0.1;
-      let deltaY = -(newX - this.lastMouseX) * amplifier;
+      const amplifier = 0.1 * Math.PI / 180;
       let deltaX = -(newY - this.lastMouseY) * amplifier;
+      let deltaY = -(newX - this.lastMouseX) * amplifier;
 
-      // horizontal rotation doesn't bother with vertical.
-      let snap = 4;
-      if (Math.abs(deltaY) > (snap * Math.abs(deltaX))) {
-        deltaX = 0;
-      } else if (Math.abs(deltaX) > (snap * Math.abs(deltaY))) {
-        deltaY = 0;
-      }
+      let newXRot = this.rotationVec_[0] + deltaX;
+      newXRot = Math.max(Math.min(newXRot, Math.PI / 2), -Math.PI / 2);
+      const newYRot = this.rotationVec_[1] + deltaY;
+      vec3.set(this.rotationVec_, newXRot, newYRot, 0);
 
-      let dq = quat.create();
-      quat.fromEuler(dq, deltaX, deltaY, 0);
-      // https://github.com/ds-hwang/wiki/wiki/VR-mathematics:-opengl-matrix,-transform,-quaternion,-euler-angles,-homography-transformation,-reprojection#dq--q2q1
-      // q2 = dq·q1
-      quat.multiply(this.modelQuat_, dq, this.modelQuat_);
-      mat4.fromQuat(this.modelMatrix_, this.modelQuat_);
+      const xRotMat = mat4.create();
+      mat4.fromXRotation(xRotMat, newXRot);
+      const yRotMat = mat4.create();
+      mat4.fromYRotation(yRotMat, newYRot);
+      const RotMat = mat4.create();
+      mat4.multiply(this.mvMatrix_, xRotMat, yRotMat);
 
       this.lastMouseX = newX;
       this.lastMouseY = newY;
@@ -425,7 +420,6 @@ class WebVR {
     this.gl_.clear(this.gl_.COLOR_BUFFER_BIT);
     if (!this.isVrMode()) {
       const viewport = {x : 0, y : 0, w : this.width_, h : this.height_};
-      mat4.multiply(this.mvMatrix_, this.viewMatrix_, this.modelMatrix_);
       this.renderEye(viewport, this.mvMatrix_, this.projectionMatrix_);
       requestAnimationFrame(this.render_);
       return;
