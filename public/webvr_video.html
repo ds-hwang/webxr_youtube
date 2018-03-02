@@ -174,31 +174,34 @@ found in the LICENSE file.
       };
 
       function loadImageSource(onLoad) {
-        let videoElement_ = document.createElement("video");
-        videoElement_.setAttribute("id", "video");
-        document.body.appendChild(videoElement_);
-        videoElement_.addEventListener('error', ev => {
+        let videoElement = document.createElement("video");
+        videoElement.setAttribute("id", "video");
+        document.body.appendChild(videoElement);
+        videoElement.addEventListener('error', ev => {
           console.log(
             "\nmp4 codec is not supported on this platform. Received error event:" +
             ev.target.error.code + "\n");
         }, false);
-        videoElement_.addEventListener("playing", _ => {
-          let videoElement_ = document.getElementById("video");
-          onLoad(videoElement_);
+        videoElement.addEventListener("playing", _ => {
+          let videoElement = document.getElementById("video");
+          onLoad(videoElement);
         }, { capture: false, once: true });
-        videoElement_.src =
+        videoElement.src =
           "images/Clash of Clans 360 - Experience a Virtual Reality Raid.mkv";
-        videoElement_.loop = true;
-        videoElement_.autoplay = true;
+        videoElement.loop = true;
+        videoElement.autoplay = true;
       };
 
       function updateTexture(gl, texture) {
-        let videoElement_ = document.getElementById("video");
+        let videoElement = document.getElementById("video");
+        if (texture.currentTime_ == videoElement.currentTime)
+          return;
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, videoElement_.width,
-          videoElement_.height, gl.RGB,
-          gl.UNSIGNED_BYTE, videoElement_);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, videoElement.videoWidth,
+          videoElement.videoHeight, gl.RGB,
+          gl.UNSIGNED_BYTE, videoElement);
+        texture.currentTime_ = videoElement.currentTime;
       };
 
       return {

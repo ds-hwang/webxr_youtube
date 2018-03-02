@@ -19,7 +19,7 @@ class WebVR {
     this.onResize();
     document.body.appendChild(this.canvas_);
 
-    this.gl_ = this.canvas_.getContext('webgl2', {antialias : true});
+    this.gl_ = this.canvas_.getContext('webgl2', {antialias : false, alpha: false});
     const isWebGL2 = !!this.gl_;
     if (!isWebGL2) {
       document.getElementById('info').innerHTML =
@@ -248,9 +248,7 @@ class WebVR {
     this.gl_.bindVertexArray(null);
   }
 
-  initTexture() {
-    stratage.loadImageSource(this.onLoadImageSource.bind(this));
-  }
+  initTexture() { stratage.loadImageSource(this.onLoadImageSource.bind(this)); }
 
   onLoadImageSource(imageSource) {
     // -- Init 2D Texture
