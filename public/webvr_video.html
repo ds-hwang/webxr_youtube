@@ -184,6 +184,7 @@ found in the LICENSE file.
         }, false);
         videoElement.addEventListener("playing", _ => {
           let videoElement = document.getElementById("video");
+          createPresentationButton(videoElement);
           onLoad(videoElement);
         }, { capture: false, once: true });
         videoElement.src =
@@ -191,6 +192,22 @@ found in the LICENSE file.
         videoElement.loop = true;
         videoElement.autoplay = true;
       };
+
+      function createPresentationButton(videoElement) {
+        const button = document.createElement('button');
+        button.classList.add('video-button');
+        button.textContent = 'Play';
+        button.addEventListener('click', _ => {
+          if (button.textContent == 'Play') {
+            videoElement.play();
+            button.textContent = 'Pause';
+          } else {
+            videoElement.pause();
+            button.textContent = 'Play';
+          }
+        });
+        document.body.appendChild(button);
+      }
 
       function updateTexture(gl, texture) {
         let videoElement = document.getElementById("video");

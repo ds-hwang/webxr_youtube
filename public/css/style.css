@@ -43,6 +43,18 @@ a {
     font-size: 14px;
 }
 
+.video-button {
+    position: fixed;
+    top: 16px;
+    left: 116px;
+    background: #44C1B7;
+    color: #FFF;
+    padding: 12px 16px;
+    border-radius: 3px;
+    border: none;
+    font-size: 14px;
+}
+
 #video {
     display: none;
 }
