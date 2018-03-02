@@ -9,6 +9,10 @@
 * [webvr_video_img.html](http://webxr-youtube.herokuapp.com/webvr_video_img.html) : construct VR using Equi-angular cubemap image.
 * [webvr_video.html](http://webxr-youtube.herokuapp.com/webvr_video.html) : construct VR using Youtube 360 video.
 
+# Some comments
+* Q: Why WebGL2?
+  * A: WebGL1 doesn't support GL_LINEAR with npot texture. lol
+
 # Reference
 * [Bringing pixels front and center in VR video](https://www.blog.google/products/google-vr/bringing-pixels-front-and-center-vr-video/)
 * [Improving VR videos](https://youtube-eng.googleblog.com/2017/03/improving-vr-videos.html)
