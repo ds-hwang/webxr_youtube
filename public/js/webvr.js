@@ -19,7 +19,8 @@ class WebVR {
     this.onResize();
     document.body.appendChild(this.canvas_);
 
-    this.gl_ = this.canvas_.getContext('webgl2', {antialias : false, alpha: false});
+    this.gl_ =
+        this.canvas_.getContext('webgl2', {antialias : false, alpha : true});
     const isWebGL2 = !!this.gl_;
     if (!isWebGL2) {
       document.getElementById('info').innerHTML =
@@ -266,8 +267,9 @@ class WebVR {
                            this.gl_.CLAMP_TO_EDGE);
 
     // -- Allocate storage for the texture
-    this.gl_.texImage2D(this.gl_.TEXTURE_2D, 0, this.gl_.RGB, this.gl_.RGB,
-                        this.gl_.UNSIGNED_BYTE, imageSource);
+    this.gl_.texImage2D(this.gl_.TEXTURE_2D, 0, this.gl_.RGBA,
+                        imageSource.videoWidth, imageSource.videoHeight, 0,
+                        this.gl_.RGBA, this.gl_.UNSIGNED_BYTE, imageSource);
 
     requestAnimationFrame(this.render_);
   }

@@ -216,7 +216,7 @@ found in the LICENSE file.
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, videoElement.videoWidth,
-          videoElement.videoHeight, gl.RGB,
+          videoElement.videoHeight, gl.RGBA,
           gl.UNSIGNED_BYTE, videoElement);
         texture.currentTime_ = videoElement.currentTime;
       };
