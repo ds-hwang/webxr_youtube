@@ -12,7 +12,7 @@ const CAMERA_SETTINGS = function() {
   return {fov : 60 * Math.PI / 180, near : 0.01, far : 10000};
 }();
 
-class WebVR {
+class WebXR {
   constructor() {
     this.addEventListeners();
     this.canvas_ = document.createElement('canvas');
@@ -38,17 +38,17 @@ class WebVR {
     this.render_ = this.render.bind(this);
 
     if (typeof VRFrameData === 'undefined') {
-      this.showWebVRNotSupportedError();
+      this.showWebXRNotSupportedError();
       return;
     }
 
-    this.vr_ = {display : null, frameData : new VRFrameData()};
+    this.xr_ = {display : null, frameData : new VRFrameData()};
 
     this.addVREventListeners();
     this.getDisplays();
   }
 
-  showWebVRNotSupportedError() { console.error('WebVR not supported'); }
+  showWebXRNotSupportedError() { console.error('WebXR not supported'); }
 
   addVREventListeners() {
     window.addEventListener('vrdisplayactivate', _ => { this.activateVR(); });
@@ -57,24 +57,24 @@ class WebVR {
   }
 
   activateVR() {
-    if (!this.vr_.display)
+    if (!this.xr_.display)
       return;
 
     this.button_.textContent = 'Disable VR';
-    this.vr_.display.requestPresent([ {source : this.canvas_} ]).catch(e => {
+    this.xr_.display.requestPresent([ {source : this.canvas_} ]).catch(e => {
       console.error(`Unable to init VR: ${e}`);
     });
   }
 
   deactivateVR() {
-    if (!this.vr_.display)
+    if (!this.xr_.display)
       return;
 
-    if (!this.vr_.display.isPresenting)
+    if (!this.xr_.display.isPresenting)
       return;
 
     this.button_.textContent = 'Enable VR';
-    this.vr_.display.exitPresent();
+    this.xr_.display.exitPresent();
   }
 
   getDisplays() {
@@ -90,7 +90,7 @@ class WebVR {
 
       // Store the first display we find. A more production-ready version should
       // allow the user to choose from their available displays.
-      this.vr_.display = displays[0];
+      this.xr_.display = displays[0];
       this.createPresentationButton();
     });
   }
@@ -104,7 +104,7 @@ class WebVR {
   }
 
   toggleVR() {
-    if (this.vr_.display.isPresenting)
+    if (this.xr_.display.isPresenting)
       return this.deactivateVR();
 
     return this.activateVR();
@@ -333,7 +333,7 @@ class WebVR {
   }
 
   isVrMode() {
-    return this.vr_ && this.vr_.display && this.vr_.display.isPresenting;
+    return this.xr_ && this.xr_.display && this.xr_.display.isPresenting;
   }
 
   render() {
@@ -350,25 +350,25 @@ class WebVR {
     const EYE_HEIGHT = this.height_;
 
     // Get all the latest data from the VR headset and dump it into frameData.
-    this.vr_.display.getFrameData(this.vr_.frameData);
+    this.xr_.display.getFrameData(this.xr_.frameData);
 
     // Left eye.
     this.renderEye({x : 0, y : 0, w : EYE_WIDTH, h : EYE_HEIGHT},
-                   this.vr_.frameData.leftViewMatrix,
-                   this.vr_.frameData.leftProjectionMatrix);
+                   this.xr_.frameData.leftViewMatrix,
+                   this.xr_.frameData.leftProjectionMatrix);
 
     // Right eye.
     this.renderEye({x : EYE_WIDTH, y : 0, w : EYE_WIDTH, h : EYE_HEIGHT},
-                   this.vr_.frameData.rightViewMatrix,
-                   this.vr_.frameData.rightProjectionMatrix);
+                   this.xr_.frameData.rightViewMatrix,
+                   this.xr_.frameData.rightProjectionMatrix);
 
     // Call submitFrame to ensure that the device renders the latest image from
     // the WebGL context.
-    this.vr_.display.submitFrame();
+    this.xr_.display.submitFrame();
 
     // Use the VR display's in-built rAF (which can be a diff refresh rate to
     // the default browser one).
-    this.vr_.display.requestAnimationFrame(this.render_);
+    this.xr_.display.requestAnimationFrame(this.render_);
   }
 
   renderEye(viewport, mvMatrix, projectionMatrix) {
@@ -400,5 +400,5 @@ class WebVR {
   }
 }
 
-new WebVR();
+new WebXR();
 })(stratage);

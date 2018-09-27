@@ -5132,7 +5132,7 @@ function perspective(out, fovy, aspect, near, far) {
 /**
  * Generates a perspective projection matrix with the given field of view.
  * This is primarily useful for generating projection matrices to be used
- * with the still experiemental WebVR API.
+ * with the still experiemental WebXR API.
  *
  * @param {mat4} out mat4 frustum matrix will be written into
  * @param {Object} fov Object containing the following values: upDegrees, downDegrees, leftDegrees, rightDegrees
