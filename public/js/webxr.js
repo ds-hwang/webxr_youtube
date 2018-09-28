@@ -251,7 +251,7 @@ class WebXR {
 
   initTexture() { stratage.loadImageSource(this.onLoadImageSource.bind(this)); }
 
-  onLoadImageSource(imageSource) {
+  onLoadImageSource(imageSource, width, height) {
     // -- Init 2D Texture
     this.texture_ = this.gl_.createTexture();
     this.gl_.activeTexture(this.gl_.TEXTURE0);
@@ -267,8 +267,7 @@ class WebXR {
                            this.gl_.CLAMP_TO_EDGE);
 
     // -- Allocate storage for the texture
-    this.gl_.texImage2D(this.gl_.TEXTURE_2D, 0, this.gl_.RGBA,
-                        imageSource.videoWidth, imageSource.videoHeight, 0,
+    this.gl_.texImage2D(this.gl_.TEXTURE_2D, 0, this.gl_.RGBA, width, height, 0,
                         this.gl_.RGBA, this.gl_.UNSIGNED_BYTE, imageSource);
 
     requestAnimationFrame(this.render_);

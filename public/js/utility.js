@@ -47,7 +47,7 @@ function getUtil() {
   function loadImage(url, onload) {
     var img = new Image();
     img.src = url;
-    img.onload = function() { onload(img); };
+    img.onload = function() { onload(img, img.width, img.height); };
     return img;
   };
 

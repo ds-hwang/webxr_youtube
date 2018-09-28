@@ -184,7 +184,7 @@ found in the LICENSE file.
         }, false);
         videoElement.addEventListener("playing", _ => {
           let videoElement = document.getElementById("video");
-          onLoad(videoElement);
+          onLoad(videoElement, videoElement.videoWidth, videoElement.videoHeight);
         }, { capture: false, once: true });
         videoElement.src =
           "images/ClashofClans360-ExperienceAVirtualRealityRaid.mkv";
