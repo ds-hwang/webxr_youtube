@@ -8,6 +8,10 @@
 // import defaultExport from 'utility';
 
 (function(stratage) {
+if (!navigator.xr) {
+  var polyfill = new WebXRPolyfill();
+}
+
 const CAMERA_SETTINGS = function() {
   return {fov : 60 * Math.PI / 180, near : 0.01, far : 10000};
 }();
@@ -18,9 +22,23 @@ class WebXR {
     this.canvas_ = document.createElement('canvas');
     this.onResize();
     document.body.appendChild(this.canvas_);
+    this.createGLContext({antialias : false, alpha : true});
+    this.setMouseBehavior();
 
-    this.gl_ =
-        this.canvas_.getContext('webgl2', {antialias : false, alpha : true});
+    if (navigator.xr) {
+      this.xr_ = {device : null, session : null, frameOfRef : null};
+      this.getXRDevice();
+    } else {
+      this.showWebXRNotSupportedError();
+    }
+
+    this.render_ = this.render.bind(this);
+  }
+
+  showWebXRNotSupportedError() { console.error('WebXR not supported'); }
+
+  createGLContext(option) {
+    this.gl_ = this.canvas_.getContext('webgl2', option);
     const isWebGL2 = !!this.gl_;
     if (!isWebGL2) {
       document.getElementById('info').innerHTML =
@@ -34,77 +52,91 @@ class WebXR {
     this.setVertexArray();
     this.initTexture();
     this.initRenderVariables();
-    this.setMouseBehavior();
-    this.render_ = this.render.bind(this);
-
-    if (typeof VRFrameData === 'undefined') {
-      this.showWebXRNotSupportedError();
-      return;
-    }
-
-    this.xr_ = {display : null, frameData : new VRFrameData()};
-
-    this.addVREventListeners();
-    this.getDisplays();
   }
 
-  showWebXRNotSupportedError() { console.error('WebXR not supported'); }
-
-  addVREventListeners() {
-    window.addEventListener('vrdisplayactivate', _ => { this.activateVR(); });
-    window.addEventListener('vrdisplaydeactivate',
-                            _ => { this.deactivateVR(); });
+  getXRDevice() {
+    navigator.xr.requestDevice().then(
+        device => {
+          this.xr_.device = device;
+          // ‘Immersive’ means rendering into the HMD.
+          this.xr_.device.supportsSession({immersive : true})
+              .then(() => { this.createPresentationButton(); })
+              .catch((err) => { console.log("XR not supported: " + err); });
+        },
+        err => {
+          if (err.message === 'NotFoundError') {
+            // No XRDevices available.
+            console.error('No XR devices available :', err);
+          } else {
+            // An error occurred while requesting an XRDevice.
+            console.error('Requesting XR device failed :', err);
+          }
+        });
   }
 
-  activateVR() {
-    if (!this.xr_.display)
+  async activateVR() {
+    if (!this.xr_.device)
       return;
 
-    this.button_.textContent = 'Disable VR';
-    this.xr_.display.requestPresent([ {source : this.canvas_} ]).catch(e => {
-      console.error(`Unable to init VR: ${e}`);
-    });
+    this.xr_.device.requestSession({immersive : true})
+        .then(
+            session => {
+              this.xr_.session = session;
+              this.xr_.session.addEventListener(
+                  'end', _ => { this.onSessionEnded(); });
+
+              this.xr_.session.depthNear = CAMERA_SETTINGS.near;
+              this.xr_.session.depthFar = CAMERA_SETTINGS.far;
+
+              // Create the WebGL layer.
+              this.gl_.setCompatibleXRDevice(this.xr_.device);
+              this.xr_.session.baseLayer =
+                  new XRWebGLLayer(this.xr_.session, this.gl_);
+
+              this.button_.textContent = 'Disable XR';
+
+              session.requestFrameOfReference('eye-level')
+                  .then((frameOfRef) => {
+                    this.xr_.frameOfRef = frameOfRef;
+
+                    // Enter the rendering loop.
+                    this.xr_.session.requestAnimationFrame(this.render_);
+                  });
+            },
+            error => {
+              console.log("Error while requesting the immersive session : " +
+                          error);
+            });
   }
 
-  deactivateVR() {
-    if (!this.xr_.display)
-      return;
-
-    if (!this.xr_.display.isPresenting)
-      return;
-
-    this.button_.textContent = 'Enable VR';
-    this.xr_.display.exitPresent();
+  async onSessionEnded() {
+    this.xr_.session = null;
+    this.xr_.frameOfRef = null;
+    this.gl_.bindFramebuffer(this.gl_.FRAMEBUFFER, null);
+    requestAnimationFrame(this.render_);
   }
 
-  getDisplays() {
-    return navigator.getVRDisplays().then(displays => {
-      // Filter down to devices that can present.
-      displays = displays.filter(display => display.capabilities.canPresent);
+  async deactivateVR() {
+    if (!this.xr_.device)
+      return;
 
-      // If there are no devices available, quit out.
-      if (displays.length === 0) {
-        console.warn('No devices available able to present.');
-        return;
-      }
+    if (!this.xr_.session)
+      return;
 
-      // Store the first display we find. A more production-ready version should
-      // allow the user to choose from their available displays.
-      this.xr_.display = displays[0];
-      this.createPresentationButton();
-    });
+    await this.xr_.session.end();
+    this.button_.textContent = 'Enable XR';
   }
 
   createPresentationButton() {
     this.button_ = document.createElement('button');
     this.button_.classList.add('vr-toggle');
-    this.button_.textContent = 'Enable VR';
+    this.button_.textContent = 'Enable XR';
     this.button_.addEventListener('click', _ => { this.toggleVR(); });
     document.body.appendChild(this.button_);
   }
 
   toggleVR() {
-    if (this.xr_.display.isPresenting)
+    if (this.xr_.session)
       return this.deactivateVR();
 
     return this.activateVR();
@@ -114,7 +146,9 @@ class WebXR {
     window.addEventListener('resize', this.onResize.bind(this));
   }
 
-  onResize() {
+  onResize() { this.resizeCanvas(window.innerWidth, window.innerHeight); }
+
+  resizeCanvas(width, height) {
     this.width_ = window.innerWidth;
     this.height_ = window.innerHeight;
     this.canvas_.width = this.width_;
@@ -331,47 +365,42 @@ class WebXR {
     }
   }
 
-  isVrMode() {
-    return this.xr_ && this.xr_.display && this.xr_.display.isPresenting;
-  }
+  isVrMode() { return this.xr_ && this.xr_.session; }
 
-  render() {
+  render(timestamp, xrFrame) {
     stratage.updateTexture(this.gl_, this.texture_);
     this.gl_.clear(this.gl_.COLOR_BUFFER_BIT);
     if (!this.isVrMode()) {
-      const viewport = {x : 0, y : 0, w : this.width_, h : this.height_};
-      this.renderEye(viewport, this.mvMatrix_, this.projectionMatrix_);
+      const viewport =
+          {x : 0, y : 0, width : this.width_, height : this.height_};
+      this.renderEye(this.mvMatrix_, this.projectionMatrix_, viewport);
       requestAnimationFrame(this.render_);
       return;
     }
+    if (!xrFrame)
+      return;
 
-    const EYE_WIDTH = this.width_ * 0.5;
-    const EYE_HEIGHT = this.height_;
+    // Get pose data.
+    let pose = xrFrame.getDevicePose(this.xr_.frameOfRef);
+    if (!pose)
+      return;
 
-    // Get all the latest data from the VR headset and dump it into frameData.
-    this.xr_.display.getFrameData(this.xr_.frameData);
+    let xrLayer = this.xr_.session.baseLayer;
+    this.resizeCanvas(xrLayer.framebufferWidth, xrLayer.framebufferHeight);
+    this.gl_.bindFramebuffer(this.gl_.FRAMEBUFFER, xrLayer.framebuffer);
 
-    // Left eye.
-    this.renderEye({x : 0, y : 0, w : EYE_WIDTH, h : EYE_HEIGHT},
-                   this.xr_.frameData.leftViewMatrix,
-                   this.xr_.frameData.leftProjectionMatrix);
+    for (let view of xrFrame.views) {
+      let viewport = xrLayer.getViewport(view);
+      this.renderEye(pose.getViewMatrix(view), view.projectionMatrix, viewport);
+    }
 
-    // Right eye.
-    this.renderEye({x : EYE_WIDTH, y : 0, w : EYE_WIDTH, h : EYE_HEIGHT},
-                   this.xr_.frameData.rightViewMatrix,
-                   this.xr_.frameData.rightProjectionMatrix);
-
-    // Call submitFrame to ensure that the device renders the latest image from
-    // the WebGL context.
-    this.xr_.display.submitFrame();
-
-    // Use the VR display's in-built rAF (which can be a diff refresh rate to
+    // Use the XR display's in-built rAF (which can be a diff refresh rate to
     // the default browser one).
-    this.xr_.display.requestAnimationFrame(this.render_);
+    this.xr_.session.requestAnimationFrame(this.render_);
   }
 
-  renderEye(viewport, mvMatrix, projectionMatrix) {
-    this.gl_.viewport(viewport.x, viewport.y, viewport.w, viewport.h);
+  renderEye(mvMatrix, projectionMatrix, viewport) {
+    this.gl_.viewport(viewport.x, viewport.y, viewport.width, viewport.height);
 
     this.gl_.bindVertexArray(this.vertexArray_);
     this.gl_.useProgram(this.program_);

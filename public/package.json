@@ -1,0 +1,16 @@
+{
+  "name": "public",
+  "version": "1.0.0",
+  "description": "Simple WebXR Video",
+  "main": "webvr_video.html",
+  "dependencies": {
+    "webxr-polyfill": "^1.0.6"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "luxtella@gmail.com",
+  "license": "ISC"
+}
